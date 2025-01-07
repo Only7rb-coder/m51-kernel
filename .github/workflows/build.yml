@@ -10,38 +10,36 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Update dependence
+      - name: Update dependencies
         run: |
           sudo apt update
-          sudo apt install build-essential bc flex bison libncurses5-dev libssl-dev git ccache -y
-          sudo rm -rf /usr/bin/python
-          sudo ln -s /usr/bin/python2.7 /usr/bin/python
-          python --version
+          sudo apt install build-essential bc flex bison libncurses5-dev libssl-dev git ccache python3 libncurses5 -y
+          python3 --version
           
       - name: Checkout Repo
         uses: actions/checkout@v4
         
-      - name: install gcc、clang
+      - name: Install gcc, clang
         run: |
           git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9  toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
           git clone https://github.com/proprietary-stuff/llvm-arm-toolchain-ship-10.0 toolchain/llvm-arm-toolchain-ship/10.0
  
-      - name: build kernel
+      - name: Build kernel
         run: |
           args="-j$(nproc --all) \
             O=out \
-          	ARCH=arm64 \
-          	CLANG_TRIPLE=aarch64-linux-gnu- \
-          	CROSS_COMPILE=$(pwd)/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android- \
-          	REAL_CC=$(pwd)/toolchain/llvm-arm-toolchain-ship/10.0/bin/clang"
-          	export DTC_EXT=dtc
-            LLVM=1
-            LLVM_IAS=1
-            make ${args} m51_eur_defconfig 
-            make ${args} 
+            ARCH=arm64 \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE=$(pwd)/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android- \
+            REAL_CC=$(pwd)/toolchain/llvm-arm-toolchain-ship/10.0/bin/clang"
+          export DTC_EXT=dtc
+          LLVM=1
+          LLVM_IAS=1
+          make ${args} m51_eur_defconfig 
+          make ${args} 
 
-      - name: build ak3
-        run : |
+      - name: Build ak3
+        run: |
           git clone https://github.com/CCCC-L/anyKernel3 releases
           sed -i "s/{branch}/${{ github.ref_name }}/" releases/anykernel.sh
           rm -rf releases/.git
