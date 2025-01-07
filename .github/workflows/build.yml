@@ -18,13 +18,12 @@ jobs:
           sudo add-apt-repository ppa:deadsnakes/ppa -y
           sudo apt update
           sudo apt install -y python2
-          sudo rm -rf /usr/bin/python
-          sudo ln -s /usr/bin/python2.7 /usr/bin/python
+          sudo ln -sf /usr/bin/python2.7 /usr/bin/python
           
-          # Manually download and install libtinfo5 if not found
+          # Ensure libtinfo5 is installed
           if ! dpkg -l | grep -q libtinfo5; then
             wget http://archive.ubuntu.com/ubuntu/pool/main/n/ncurses/libtinfo5_6.2-0ubuntu2_amd64.deb
-            sudo dpkg -i libtinfo5_6.2-0ubuntu2_amd64.deb
+            sudo dpkg -i libtinfo5_6.2-0ubuntu2_amd64.deb || sudo apt install -f -y
           fi
 
           python --version
@@ -34,31 +33,31 @@ jobs:
 
       - name: Install GCC and Clang
         run: |
-          git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9  toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
+          git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
           git clone https://github.com/proprietary-stuff/llvm-arm-toolchain-ship-10.0 toolchain/llvm-arm-toolchain-ship/10.0
 
       - name: Build Kernel
         run: |
-          args="-j$(nproc --all) \
+          args="-j$(nproc) \
             O=out \
             ARCH=arm64 \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=$(pwd)/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android- \
             REAL_CC=$(pwd)/toolchain/llvm-arm-toolchain-ship/10.0/bin/clang"
           export DTC_EXT=dtc
-          LLVM=1
-          LLVM_IAS=1
-          make ${args} m51_eur_defconfig 
+          export LLVM=1
+          export LLVM_IAS=1
+          make ${args} m51_eur_defconfig
           make ${args}
 
-      - name: Build AnyKernel3
+      - name: Prepare AnyKernel3
         run: |
           git clone https://github.com/CCCC-L/anyKernel3 releases
           sed -i "s/{branch}/${{ github.ref_name }}/" releases/anykernel.sh
           rm -rf releases/.git
           mv out/arch/arm64/boot/Image releases
 
-      - name: Upload Boot
+      - name: Upload Kernel
         uses: actions/upload-artifact@v4
         with:
           name: T970-kernel-${{ github.ref_name }}
