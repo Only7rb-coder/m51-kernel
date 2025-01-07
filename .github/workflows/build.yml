@@ -1,4 +1,5 @@
 name: Build Kernel
+
 on:
   workflow_call:
   workflow_dispatch:
@@ -9,25 +10,31 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
+
     steps:
       - name: Update Dependencies
         run: |
           sudo apt update -y
-sudo apt install default-jdk git gnupg flex bison gperf build-essential zip curl \
-libc6-dev libncurses-dev libx11-dev libreadline-dev libgl1 libgl1-mesa-dev \
-python3 make sudo gcc g++ bc grep tofrodos python3-markdown libxml2-utils xsltproc \
-zlib1g-dev python-is-python3 libc6-dev libtinfo6 make repo cpio kmod openssl \
-libelf-dev pahole libssl-dev -y
+          sudo apt install -y default-jdk git gnupg flex bison gperf build-essential zip curl \
+            libc6-dev libncurses-dev libx11-dev libreadline-dev libgl1 libgl1-mesa-dev \
+            python3 make sudo gcc g++ bc grep tofrodos python3-markdown libxml2-utils xsltproc \
+            zlib1g-dev python-is-python3 libc6-dev libtinfo6 make repo cpio kmod openssl \
+            libelf-dev pahole libssl-dev
+          
+          python3 --version
 
-          python --version
-
-      - name: Checkout Repo
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Install GCC and Clang
         run: |
-          git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
-          git clone https://github.com/proprietary-stuff/llvm-arm-toolchain-ship-10.0 toolchain/llvm-arm-toolchain-ship/10.0
+          mkdir -p toolchain/gcc/linux-x86/aarch64/
+          git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 \
+            toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
+
+          mkdir -p toolchain/llvm-arm-toolchain-ship/
+          git clone https://github.com/proprietary-stuff/llvm-arm-toolchain-ship-10.0 \
+            toolchain/llvm-arm-toolchain-ship/10.0
 
       - name: Build Kernel
         run: |
@@ -40,6 +47,7 @@ libelf-dev pahole libssl-dev -y
           export DTC_EXT=dtc
           export LLVM=1
           export LLVM_IAS=1
+          
           make ${args} m51_eur_defconfig
           make ${args}
 
@@ -48,7 +56,7 @@ libelf-dev pahole libssl-dev -y
           git clone https://github.com/CCCC-L/anyKernel3 releases
           sed -i "s/{branch}/${{ github.ref_name }}/" releases/anykernel.sh
           rm -rf releases/.git
-          mv out/arch/arm64/boot/Image releases
+          mv out/arch/arm64/boot/Image releases/
 
       - name: Upload Kernel
         uses: actions/upload-artifact@v4
