@@ -1,4 +1,4 @@
-name: build kernel
+name: Build Kernel
 on:
   workflow_call:
   workflow_dispatch:
@@ -6,22 +6,29 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
-      - name: Update dependencies
+      - name: Update Dependencies
         run: |
           sudo apt update
-          sudo add-apt-repository universe
-          sudo apt install -y build-essential bc flex bison libncurses5-dev libssl-dev git ccache libtinfo5 software-properties-common
-          sudo add-apt-repository ppa:deadsnakes/ppa
+          sudo add-apt-repository universe -y
+          sudo apt install -y build-essential bc flex bison libncurses5-dev libssl-dev git ccache software-properties-common wget
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
           sudo apt update
           sudo apt install -y python2
           sudo rm -rf /usr/bin/python
           sudo ln -s /usr/bin/python2.7 /usr/bin/python
-          python --version
           
+          # Manually download and install libtinfo5 if not found
+          if ! dpkg -l | grep -q libtinfo5; then
+            wget http://archive.ubuntu.com/ubuntu/pool/main/n/ncurses/libtinfo5_6.2-0ubuntu2_amd64.deb
+            sudo dpkg -i libtinfo5_6.2-0ubuntu2_amd64.deb
+          fi
+
+          python --version
+
       - name: Checkout Repo
         uses: actions/checkout@v4
 
@@ -30,7 +37,7 @@ jobs:
           git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9  toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
           git clone https://github.com/proprietary-stuff/llvm-arm-toolchain-ship-10.0 toolchain/llvm-arm-toolchain-ship/10.0
 
-      - name: Build kernel
+      - name: Build Kernel
         run: |
           args="-j$(nproc --all) \
             O=out \
@@ -51,7 +58,7 @@ jobs:
           rm -rf releases/.git
           mv out/arch/arm64/boot/Image releases
 
-      - name: Upload boot
+      - name: Upload Boot
         uses: actions/upload-artifact@v4
         with:
           name: T970-kernel-${{ github.ref_name }}
